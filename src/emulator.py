@@ -1,13 +1,12 @@
-"""Эмулятор командной строки. Этап 2: параметры и стартовый скрипт."""
+"""Эмулятор командной строки: параметры, REPL, стартовый скрипт и VFS."""
 
 import argparse
-import os
 import sys
 
 from commands import execute_line
 from errors import ExitShell, ShellError
+from vfs import VFSError, create_empty_vfs, load_vfs
 
-DEFAULT_VFS_NAME = "vfs"
 NOT_SET = "(не задан)"
 EXIT_ERROR = 1
 STATUS_OK = "ok"
@@ -18,7 +17,7 @@ STATUS_EXIT = "exit"
 def parse_arguments():
     """Разбирает параметры командной строки."""
     parser = argparse.ArgumentParser(description="Эмулятор командной строки")
-    parser.add_argument("--vfs", help="путь к физическому расположению VFS")
+    parser.add_argument("--vfs", help="путь к XML-файлу с VFS")
     parser.add_argument("--script", help="путь к стартовому скрипту")
     return parser.parse_args()
 
@@ -29,23 +28,21 @@ def print_debug(options):
     print(f"[DEBUG] script = {options.script or NOT_SET}")
 
 
-def get_vfs_name(vfs_path):
-    """Возвращает имя VFS: имя файла без расширения или имя по умолчанию."""
-    if not vfs_path:
-        return DEFAULT_VFS_NAME
-    file_name = os.path.basename(vfs_path)
-    return os.path.splitext(file_name)[0]
+def load_vfs_or_exit(path):
+    """Загружает VFS. При ошибке печатает сообщение и завершает работу."""
+    if not path:
+        return create_empty_vfs()
+    try:
+        return load_vfs(path)
+    except VFSError as error:
+        print(f"Ошибка загрузки VFS: {error}")
+        sys.exit(EXIT_ERROR)
 
 
-def get_prompt(vfs_name):
-    """Возвращает приглашение к вводу с именем VFS."""
-    return f"{vfs_name}$ "
-
-
-def run_line(line):
+def run_line(line, vfs):
     """Выполняет одну строку. Возвращает STATUS_OK, STATUS_ERROR или EXIT."""
     try:
-        execute_line(line)
+        execute_line(line, vfs)
     except ExitShell:
         return STATUS_EXIT
     except ShellError as error:
@@ -63,7 +60,7 @@ def read_script(path):
         return None
 
 
-def run_script(path, vfs_name):
+def run_script(path, vfs):
     """Выполняет стартовый скрипт, показывая и ввод, и вывод.
 
     Останавливается на первой ошибке. Возвращает статус выполнения.
@@ -76,8 +73,8 @@ def run_script(path, vfs_name):
         text = line.strip()
         if not text or text.startswith("#"):
             continue
-        print(f"{get_prompt(vfs_name)}{text}")
-        status = run_line(text)
+        print(f"{vfs.get_prompt()}{text}")
+        status = run_line(text, vfs)
         if status == STATUS_ERROR:
             print(f"Ошибка в скрипте {path} (строка {number})")
         if status != STATUS_OK:
@@ -85,26 +82,26 @@ def run_script(path, vfs_name):
     return STATUS_OK
 
 
-def read_command(vfs_name):
+def read_command(vfs):
     """Читает строку ввода; при вводе из файла дублирует её на экран."""
-    line = input(get_prompt(vfs_name))
+    line = input(vfs.get_prompt())
     if not sys.stdin.isatty():
         print(line)
     return line
 
 
-def run_repl(vfs_name):
+def run_repl(vfs):
     """Интерактивный цикл: читает команды, пока не будет введён exit."""
     while True:
         try:
-            line = read_command(vfs_name)
+            line = read_command(vfs)
         except EOFError:
             print()
             break
         except KeyboardInterrupt:
             print()
             continue
-        if run_line(line) == STATUS_EXIT:
+        if run_line(line, vfs) == STATUS_EXIT:
             break
 
 
@@ -112,14 +109,14 @@ def main():
     """Запускает эмулятор."""
     options = parse_arguments()
     print_debug(options)
-    vfs_name = get_vfs_name(options.vfs)
+    vfs = load_vfs_or_exit(options.vfs)
     if options.script:
-        status = run_script(options.script, vfs_name)
+        status = run_script(options.script, vfs)
         if status == STATUS_ERROR:
             sys.exit(EXIT_ERROR)
         if status == STATUS_EXIT:
             return
-    run_repl(vfs_name)
+    run_repl(vfs)
 
 
 if __name__ == "__main__":

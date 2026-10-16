@@ -1,0 +1,6 @@
+vfs-info extra
+cd one two
+exit 5
+foo
+ls "unclosed
+exit

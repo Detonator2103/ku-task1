@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<vfs name="several_files">
+  <file name="a.txt" mode="644">Первый файл</file>
+  <file name="b.txt" mode="600">Второй файл</file>
+  <file name="icon.bin" mode="644" encoding="base64">iVBORw0KGgo=</file>
+  <dir name="data" mode="755">
+    <file name="one.txt">Данные 1</file>
+    <file name="two.txt">Данные 2</file>
+  </dir>
+</vfs>

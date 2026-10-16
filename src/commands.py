@@ -1,9 +1,11 @@
 """Команды эмулятора и выполнение строки ввода."""
 
+import re
 import time
 
 from errors import ExitShell, ShellError
 from parsing import parse_line
+from vfs import DEFAULT_FILE_MODE, Node, parse_octal_mode
 
 START_TIME = time.time()
 TIME_FORMAT = "%Y-%m-%d %H:%M"
@@ -14,6 +16,10 @@ LETTERS_IN_GROUP = 3
 PERMISSION_LETTERS = "rwx"
 MAX_LS_PATHS = 1
 MAX_CD_ARGS = 1
+CHMOD_ARGS_COUNT = 2
+SYMBOLIC_PATTERN = re.compile(r"([ugoa]*)([+-])([rwx]+)")
+WHO_SHIFTS = {"u": 6, "g": 3, "o": 0}
+PERMISSION_VALUES = {"r": 4, "w": 2, "x": 1}
 OS_NAME = "VFS-OS"
 OS_RELEASE = "1.0"
 OS_MACHINE = "python"
@@ -138,6 +144,68 @@ def cmd_uptime(vfs, args):
         raise ShellError("uptime: неверные аргументы")
 
 
+def parse_mode(text, old_mode):
+    """Вычисляет новые права по записи вида 755 или u+x."""
+    octal_mode = parse_octal_mode(text)
+    if octal_mode is not None:
+        return octal_mode
+    match = SYMBOLIC_PATTERN.fullmatch(text)
+    if match is None:
+        raise ShellError(f"chmod: неверный режим: '{text}'")
+    who, sign, letters = match.groups()
+    if not who or "a" in who:
+        who = "ugo"
+    mask = 0
+    for user in who:
+        for letter in letters:
+            mask |= PERMISSION_VALUES[letter] << WHO_SHIFTS[user]
+    if sign == "+":
+        return old_mode | mask
+    return old_mode & ~mask
+
+
+def cmd_chmod(vfs, args):
+    """Меняет права файла или папки: chmod РЕЖИМ ПУТЬ."""
+    if len(args) != CHMOD_ARGS_COUNT:
+        raise ShellError(
+            "chmod: неверные аргументы (использование: chmod РЕЖИМ ПУТЬ)"
+        )
+    mode_text, path = args
+    node = vfs.find(path)
+    if node is None:
+        raise ShellError(f"chmod: нет такого пути: {path}")
+    node.mode = parse_mode(mode_text, node.mode)
+
+
+def touch_path(vfs, path, create_missing):
+    """Обновляет время изменения или создаёт пустой файл."""
+    parts = vfs.resolve(path)
+    node = vfs.find_parts(parts)
+    if node is not None:
+        node.mtime = time.time()
+        return
+    if not create_missing:
+        return
+    parent = vfs.find_parts(parts[:-1])
+    if parent is None:
+        raise ShellError(f"touch: нет такого пути: {path}")
+    if not parent.is_dir:
+        raise ShellError(f"touch: это не папка: {path}")
+    parent.add_child(Node(parts[-1], False, DEFAULT_FILE_MODE))
+
+
+def cmd_touch(vfs, args):
+    """Создаёт пустые файлы или обновляет время: touch [-c] ПУТЬ..."""
+    for arg in args:
+        if arg.startswith("-") and arg != "-c":
+            raise ShellError(f"touch: неизвестная опция '{arg}'")
+    paths = [arg for arg in args if arg != "-c"]
+    if not paths:
+        raise ShellError("touch: не указан файл")
+    for path in paths:
+        touch_path(vfs, path, "-c" not in args)
+
+
 COMMANDS = {
     "exit": cmd_exit,
     "vfs-info": cmd_vfs_info,
@@ -145,6 +213,8 @@ COMMANDS = {
     "cd": cmd_cd,
     "uname": cmd_uname,
     "uptime": cmd_uptime,
+    "chmod": cmd_chmod,
+    "touch": cmd_touch,
 }
 
 

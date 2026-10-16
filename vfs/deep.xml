@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<vfs name="deep">
+  <dir name="home" mode="755">
+    <dir name="user" mode="755">
+      <dir name="docs" mode="755">
+        <file name="notes.txt" mode="644">Заметки по курсу</file>
+        <file name="logo.bin" mode="644" encoding="base64">iVBORw0KGgo=</file>
+      </dir>
+      <file name="todo.txt" mode="644">Сдать СиАОД</file>
+    </dir>
+  </dir>
+  <dir name="etc" mode="755">
+    <file name="config.ini" mode="600">debug=1</file>
+  </dir>
+  <file name="readme.txt" mode="644">VFS с четырьмя уровнями вложенности</file>
+</vfs>

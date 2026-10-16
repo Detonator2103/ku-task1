@@ -1,0 +1,9 @@
+ls /nope
+ls -x
+ls a b
+cd /nope
+cd /readme.txt
+cd a b
+uname -x
+uptime now
+exit

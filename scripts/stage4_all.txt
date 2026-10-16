@@ -1,0 +1,21 @@
+# Этап 4: все команды этапа 4 (VFS: vfs/deep.xml).
+# Последняя команда намеренно содержит ошибку: скрипт на ней остановится.
+uname
+uname -a
+uname -r -m
+uptime
+uptime -p
+ls
+ls -l
+ls /home/user
+ls -l /home/user/docs
+ls /readme.txt
+cd home
+cd user/docs
+ls -l
+cd ../..
+cd /etc
+ls -l
+cd
+ls home
+ls /nope

@@ -4,6 +4,7 @@ import base64
 import binascii
 import hashlib
 import re
+import time
 import xml.etree.ElementTree as ET
 
 DEFAULT_NAME = "vfs"
@@ -26,7 +27,14 @@ class Node:
         self.is_dir = is_dir
         self.mode = mode
         self.data = data
+        self.mtime = time.time()
         self.children = {}
+
+    def size(self):
+        """Возвращает размер файла в байтах (у папки — ноль)."""
+        if self.is_dir:
+            return 0
+        return len(self.data)
 
     def add_child(self, node):
         """Добавляет вложенный узел в папку."""
@@ -41,10 +49,44 @@ class VFS:
         self.name = name
         self.root = root
         self.digest = digest
+        self.cwd = []
+
+    def get_cwd_path(self):
+        """Возвращает текущую папку в виде строки, например /home/user."""
+        return "/" + "/".join(self.cwd)
 
     def get_prompt(self):
-        """Возвращает приглашение к вводу с именем VFS."""
-        return f"{self.name}$ "
+        """Возвращает приглашение к вводу: имя VFS и текущая папка."""
+        return f"{self.name}:{self.get_cwd_path()}$ "
+
+    def resolve(self, path):
+        """Превращает путь в список имён от корня.
+
+        Учитывает текущую папку, а также части '.' и '..'.
+        """
+        parts = [] if path.startswith("/") else list(self.cwd)
+        for name in path.split("/"):
+            if name in ("", "."):
+                continue
+            if name == "..":
+                if parts:
+                    parts.pop()
+            else:
+                parts.append(name)
+        return parts
+
+    def find_parts(self, parts):
+        """Находит узел по списку имён от корня. Если нет — возвращает None."""
+        node = self.root
+        for name in parts:
+            if not node.is_dir or name not in node.children:
+                return None
+            node = node.children[name]
+        return node
+
+    def find(self, path):
+        """Находит узел по пути (абсолютному или относительному)."""
+        return self.find_parts(self.resolve(path))
 
 
 def parse_octal_mode(text):

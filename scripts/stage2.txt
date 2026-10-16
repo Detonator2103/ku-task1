@@ -1,0 +1,7 @@
+# Этап 2: простой стартовый скрипт.
+# Запуск: python src/emulator.py --vfs vfs/minimal.xml --script scripts/stage2.txt
+ls
+ls -l
+cd /
+cd
+exit

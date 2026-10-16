@@ -1,0 +1,7 @@
+ls -l /home
+cd $HOME
+cd one two
+exit 5
+foo
+ls "unclosed
+exit

@@ -1,0 +1,10 @@
+chmod
+chmod 755
+chmod 999 readme.txt
+chmod 755 /nope
+chmod u+q readme.txt
+touch
+touch -x file
+touch /nope/dir/file.txt
+touch /readme.txt/file.txt
+exit

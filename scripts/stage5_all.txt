@@ -1,0 +1,19 @@
+# Этап 5: команды chmod и touch (VFS: vfs/deep.xml).
+# Последняя команда намеренно содержит ошибку: скрипт на ней остановится.
+vfs-info
+cd /home/user
+ls -l
+touch new.txt
+touch -c missing.txt
+touch docs/new_note.txt
+ls -l
+ls -l docs
+chmod 600 new.txt
+chmod u+x new.txt
+chmod go-r todo.txt
+chmod +x docs
+chmod a-w new.txt
+ls -l
+touch todo.txt
+ls -l
+chmod 999 new.txt
